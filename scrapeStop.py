@@ -11,9 +11,9 @@ JSONstopURL = 'http://nb.translink.ca/rideapi.ashx?cp=gsas%2F{CODE}=='
 JSONstopAndRouteURL = 'http://nb.translink.ca/rideapi.ashx?cp=gssr%2F{CODE}==;{ROUTE}'
 
 
-def getCurlObject():
+def makeCurlObject():
 	c = pycurl.Curl()
-	c.setopt(pycurl.COOKIEFILE, 'cookie.txt')
+	c.setopt(pycurl.COOKIEFILE, '')
 
 	return c
 
@@ -50,7 +50,7 @@ def getStopAndRouteCode(c, stopNumber, route):
 	return code
 
 def getStopJSON(stopNumber, route = False):
-	c = getCurlObject()
+	c = makeCurlObject()
 
 	if route == False:
 		code = getStopCode(c, stopNumber)
@@ -62,24 +62,3 @@ def getStopJSON(stopNumber, route = False):
 
 	return json
 
-def parseStopJSON(jsonString):
-	data = json.loads(jsonString)
-	schedules = dict()
-
-	for route in data['NextBuses']:
-		departures = []
-		for departure in route['Schedules']:
-			if (departure['Source'] != 'et'):
-				departures.append(str(departure['ExpectedCountdown']) + '*')
-			else:
-				departures.append(str(departure['ExpectedCountdown']))
-		schedules[route['RouteNo']] = departures
-
-	return schedules
-
-
-#print getStopJSON('50166')
-#print getStopJSON('50166', '003')
-
-print parseStopJSON(getStopJSON('50166', '003'))
-print parseStopJSON(getStopJSON('50181'))
