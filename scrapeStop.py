@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import pycurl, StringIO, json, urllib
+import pycurl, StringIO, simplejson as json, urllib
 
 # constants for Translink scraping
 

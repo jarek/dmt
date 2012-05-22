@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import scrapeStop, json
+import scrapeStop, simplejson as json
 
 def printRouteInfo(json, routeNumber):
 	# TODO: find out what happens if routeNumber isn't in the collection, and handle that
 	# TODO: handle json somehow now having a Stop or an AtStreet within that
 	routeInfo = (route for route in json['NextBuses'] if route['RouteNo'] == routeNumber).next()
 
-	print routeInfo['RouteNo'] + ' ' + routeInfo['Direction'] + ' @ ' + json['Stop']['AtStreet'] + ':',
+	print routeInfo['RouteNo'].lstrip('0') + ' ' + routeInfo['Direction'].lower() + ' @ ' + json['Stop']['AtStreet'].title() + ':',
 
 	departures = []
 	for departure in routeInfo['Schedules']:
@@ -36,6 +36,8 @@ stops = [	['50167','003'], # 3 northbound
 		['61150','033'], #33 eastbound
 		['61118','033']  #33 westbound
 	]
+
+print 'Content-type: text/html\n'
 
 for stop in stops:
 	stopData = json.loads(scrapeStop.getStopJSON(stop[0], stop[1]))
