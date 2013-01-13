@@ -5,7 +5,13 @@ import scrapeStop, simplejson as json
 def printRouteInfo(json, routeNumber):
 	# TODO: find out what happens if routeNumber isn't in the collection, and handle that
 	# TODO: handle json somehow now having a Stop or an AtStreet within that
-	routeInfo = (route for route in json['NextBuses'] if route['RouteNo'] == routeNumber).next()
+	
+	nextbuses = json.get('NextBuses', False)
+	if (nextbuses == False):
+		print 'no information'
+		return
+
+	routeInfo = (route for route in nextbuses if route['RouteNo'] == routeNumber).next()
 
 	print routeInfo['RouteNo'].lstrip('0') + ' ' + routeInfo['Direction'].lower() + ' @ ' + json['Stop']['AtStreet'].title() + ':',
 
@@ -39,7 +45,9 @@ stops = [	['50167','003'], # 3 northbound
 
 print 'Content-type: text/html\n'
 
+#print scrapeStop.getStopJSON(stops[0][0], stops[0][1])
+
 for stop in stops:
-	stopData = json.loads(scrapeStop.getStopJSON(stop[0], stop[1]))
+	stopData = json.loads(scrapeStop.getStopJSON(stop[0])) #, stop[1]))
 	printRouteInfo(stopData, stop[1])
 
