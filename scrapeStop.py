@@ -1,93 +1,59 @@
 #!/usr/bin/env python
 
-import pycurl, StringIO, simplejson as json, urllib
+import pycurl
+import StringIO
+import simplejson as json
+import time
+import translink_api_key # contains only the API_KEY constant
 
 # constants for Translink scraping
 
-HTMLstopURL = 'http://nb.translink.ca/text/stop/{STOP}'
-HTMLstopAndRouteURL = 'http://nb.translink.ca/text/stop/{STOP}/route/{ROUTE}'
+API_KEY = translink_api_key.API_KEY
 
-JSONstopURL = 'http://nb.translink.ca/nextbus.ashx?cp=gsas%2F{CODE}=='
-JSONstopAndRouteURL = 'http://nb.translink.ca/nextbus.ashx?cp=gssr%2F{CODE}==;{ROUTE}'
+API_STOP_URL = 'http://api.translink.ca/rttiapi/v1/stops/{STOP}/estimates?apikey={KEY}'
+API_STOP_AND_ROUTE_URL = 'http://api.translink.ca/rttiapi/v1/stops/{STOP}/estimates?apikey={KEY}&routeNo={ROUTE}'
 
+API_HEADERS = ['Accept: application/json']
 
-def makeCurlObject():
+timer = []
+
+def get_URL(url):
+	http_get_time_start = time.time()
+
 	c = pycurl.Curl()
-	c.setopt(pycurl.COOKIEFILE, 'cookie.txt')
-	c.setopt(pycurl.COOKIEJAR, 'cookie.txt')
 
-	return c
-
-def getURL(c, url, referer = False):
+	c.setopt(pycurl.HTTPHEADER, API_HEADERS)
+	
 	c.setopt(pycurl.URL, url)
-
-#	c.setopt(pycurl.HTTPHEADER, ['Accept: text/html, application/xml;q=0.9, application/xhtml+xml, image/png, image/webp, image/jpeg, image/gif, image/x-xbitmap, */*;q=0.1', 'Accept-Encoding: gzip, deflate', 'Cookie: nb.sgn='+getCookieCode(c) ])
-#	c.setopt(pycurl.USERAGENT, 'Opera/9.80 (X11; Linux i686; U; en) Presto/2.10.229 Version/11.64')
-
-#	if (referer != False):
-#		c.setopt(pycurl.REFERER, referer)
 
 	b = StringIO.StringIO()
 	c.setopt(pycurl.WRITEFUNCTION, b.write)
 	c.perform()
+
+	#timer.append(['http get, ms', (time.time() - http_get_time_start)*1000.0])
 
 	html = b.getvalue()
 	b.close()
 	
 	return html
 
-def getStopCode(c, stopNumber):
-	html = getURL(c, HTMLstopURL.replace('{STOP}', stopNumber))
-
-	codeIndexStart = html.find('nbt.initSchedules(\'') + 19
-	codeIndexEnd = codeIndexStart + 22
-	code = html[codeIndexStart:codeIndexEnd]
-	code = urllib.quote_plus(code)
-
-	return code
-
-def getStopAndRouteCode(c, stopNumber, route):
-	html = getURL(c, HTMLstopAndRouteURL.replace('{STOP}', stopNumber).replace('{ROUTE}', route))
-
-	codeIndexStart = html.find('nbt.initStopAndRoute(\'') + 22
-	codeIndexEnd = codeIndexStart + 22
-	code = html[codeIndexStart:codeIndexEnd]
-	code = urllib.quote_plus(code)
-
-	return code
-
-def getCookieCode(c):
-	""" code to get this nominally is:
-	js = getURL(c, 'http://nb.translink.ca/Scripts/tl.nb.t.min.js')
-
-	codeIndexStart = js.find('nb.sgn') + 9
-	codeIndexEnd = codeIndexStart + 12
-	code = js[codeIndexStart:codeIndexEnd]
-
-	return code """
-
-	# in practice the code doesn't change, so return the hardcoded value
-	# (revert to that code if this situation changes)
-	return 'SnVuVGFuZw0K'
-
-def getStopJSON(stopNumber, route = False):
-	c = makeCurlObject()
-
-	# TODO: try to also set referer, and then other headers.
+def get_stop_data(stop_number, route = False):
+	replace_and_json_parse_time_start = time.time()
 
 	if route == False:
-		code = getStopCode(c, stopNumber)
-		referer = 'http://nb.translink.ca/Text/Stop/' + stopNumber
-		print code
-		print JSONstopURL.replace('{CODE}', code)
-		json = getURL(c, JSONstopURL.replace('{CODE}', code), referer)
+		url = API_STOP_URL.replace('{STOP}', str(stop_number))\
+			.replace('{KEY}', API_KEY)
+		json_text = get_URL(url)
 		
 	else:
-		code = getStopAndRouteCode(c, stopNumber, route)
-		print code
-		print JSONstopAndRouteURL.replace('{CODE}', code).replace('{ROUTE}', route)
-		json = getURL(c, JSONstopAndRouteURL.replace('{CODE}', code).replace('{ROUTE}', route))
+		url = API_STOP_AND_ROUTE_URL.replace('{STOP}', str(stop_number))\
+			.replace('{ROUTE}', route).replace('{KEY}', API_KEY)
+		json_text = get_URL(url)
 
-	return json
+	result = json.loads(json_text)
 
-#print getStopJSON('50233')
+	timer.append(['get stop #%d total, ms' % stop_number, \
+		(time.time() - replace_and_json_parse_time_start)*1000.0])
+
+	return result
+
