@@ -7,13 +7,9 @@ HTML = False
 # TODO: set this to true or false depending if we're supposed to print as HTML or unstyled
 
 STOP_SETS = {
-	'home-downtown': {50167: ['50167', '003', 'downtown', '28th'],
-			51571: ['51571', '025', 'UBC', 'Main'],
-			61118: ['61118', '033', 'UBC', 'Main']},
-	'downtown-home': {50035: ['50035', '003', 'Main', 'Seymour'],
-			50233: ['50233', '003', 'Main', 'Terminal'],
-			51513: ['51513', '025', 'Brentwood', 'Cambie']},
-	'main-skytrain': {50233: ['50233', '003', 'Main', 'Terminal']}
+	'home-downtown': [50167, 51571, 61118],
+	'downtown-home': [50035, 50233, 51513],
+	'main-skytrain': [50233]
 	}
 
 def format_timer_info(t):
@@ -22,25 +18,41 @@ def format_timer_info(t):
                 result = result + '<!--%s: %f-->' % (timepoint[0], timepoint[1]) + '\n'
 	return result
 
-def format_route_info(nextbuses, route_number, destination = '', at_street = ''):
-	# TODO: find out what happens if routeNumber isn't in the collection, and handle that
+def format_route_info(nextbuses, stop_info):
+	# TODO: this function is a mess, needs to be cleaned up,
+	# and the info-finding logic (handling error codes, finding
+	# routeInfo, etc) possibly needs to be moved into data-layer
+	# scrapeStop.py.
+
+	route_number = ''
+	destination = ''
+	at_street = ''
+
+	if 'route' in stop_info:
+		route_number = stop_info['route']
+	if 'direction' in stop_info:
+		destination = stop_info['direction']
+	if 'at_street' in stop_info:
+		at_street = stop_info['at_street']
 	
 	if len(nextbuses) == 0:
 		return 'no information'
 
 	if 'Code' in nextbuses and nextbuses['Code'] == '3005':
 		if not route_number == '':
-			return route_number.lstrip('0') + ': no estimates found'
+			return str(route_number).lstrip('0') + ': no estimates found'
 		else:
 			return 'no estimates found'
+	elif 'Code' in nextbuses and nextbuses['Code'] == '3002':
+		return 'invalid stop number'
 
 	if not route_number == '':
-		routeInfo = (route for route in nextbuses if route['RouteNo'] == str(route_number)).next()
+		routeInfo = (route for route in nextbuses if route['RouteNo'] == str(route_number).rjust(3, '0')).next()
 	else:
 		routeInfo = nextbuses[0]
-		route_number = routeInfo['RouteNo']
+		route_number = routeInfo['RouteNo'].lstrip('0')
 
-	result = route_number.lstrip('0') + ' ' + destination + ' @ ' + at_street + ': '
+	result = str(route_number) + ' ' + destination + ' @ ' + at_street + ': '
 
 	departures = []
 	for departure in routeInfo['Schedules']:
@@ -75,29 +87,34 @@ def get_stops_from_command(command):
 		else:
 			stops_in_command = command.split(';')
 
-	if isinstance(stops_in_command, dict):
-		return stops_in_command
-	else:
-		stops = {}
-		for stop in stops_in_command:
-			stop_data = stop.split(',')
+	stops = []
+	for stop in stops_in_command:
+		stop_data = str(stop).split(',')
+		if len(stop_data) > 1:
+			# string passed in, need to process
+			# format is stopnumber,routenumber
 			try:
-				stops[int(stop_data[0])] = [str(stop_data[0]), '', '', '']
-				if len(stop_data) > 1:
-					stops[int(stop_data[0])][1] = str(stop_data[1]).rjust(3,'0')
+				stops.append([int(stop_data[0]), stop_data[1]])
+			except:
+				# invalid stop number format, etc - ignore
+				pass
+		else:
+			try:
+				stops.append(int(stop))
 			except:
 				pass
-				
-		return stops
+
+	return stops
 
 def format_default_stops():
-	stops = {	50167: ['50167','003','downtown','28 Ave'], # 3 northbound
-			50247: ['50247','003','southbound','28 Ave'], # 3 southbound
-			51517: ['51518','025','eastbound','Main St'], #25 eastbound
-			51517: ['51571','025','westbound','Main St'], #25 westbound
-			61150: ['61150','033','eastbound','Main St'], #33 eastbound
-			61118: ['61118','033','westbound','Main St']  #33 westbound
-		}
+	stops = [
+		50167, # 3 northbound
+		50247, # 3 southbound
+		51518, #25 eastbound
+		51571, #25 westbound
+		61150, #33 eastbound
+		61118  #33 westbound
+		]
 
 	return format_stops(stops)
 
@@ -107,9 +124,19 @@ def format_stops(stops):
 		result = 'Content-type: text/html\n\n'
 
 	for stop in stops:
-		stop_info = stops[stop]
-		stop_data = scrapeStop.get_stop_data(stop)
-		result = result + format_route_info(stop_data, stop_info[1], stop_info[2], stop_info[3]) + '\n'
+		if isinstance(stop, list):
+			stop_number = stop[0]
+			if len(stop) > 1:
+				route = stop[1]
+		else:
+			stop_number = stop
+			route = False
+
+		stop_info = scrapeStop.get_stop_info(stop_number, route)
+
+		stop_nextbus = scrapeStop.get_stop_data(stop_number, route)
+
+		result = result + format_route_info(stop_nextbus, stop_info) + '\n'
 		if HTML:
 			result = result + '<br/>\n'
 
@@ -121,5 +148,7 @@ if __name__ == '__main__':
 	if len(sys.argv) == 1:
 		print format_default_stops()
 	else:
+		# command format is: "stop;stop;stop,route"
+		# e.g. ./printStops.py "50167;51518,25"
 		stops = get_stops_from_command(sys.argv[1:])
 		print format_stops(stops)
