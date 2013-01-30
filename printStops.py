@@ -18,58 +18,56 @@ def format_timer_info(t):
                 result = result + '<!--%s: %f-->' % (timepoint[0], timepoint[1]) + '\n'
 	return result
 
-def format_route_info(nextbuses, stop_info):
-	# TODO: this function is a mess, needs to be cleaned up,
-	# and the info-finding logic (handling error codes, finding
-	# routeInfo, etc) possibly needs to be moved into data-layer
-	# scrapeStop.py.
+def format_stop_route_info(data):
+	result = ''
 
-	route_number = ''
-	destination = ''
-	at_street = ''
+	if data['route_number']:
+		result = scrapeStop.unpad_route_number(data['route_number'])
 
-	if 'route' in stop_info:
-		route_number = stop_info['route']
-	if 'direction' in stop_info:
-		destination = stop_info['direction']
-	if 'at_street' in stop_info:
-		at_street = stop_info['at_street']
-	
-	if len(nextbuses) == 0:
-		return 'no information'
+		if data['direction']:
+			result = result + ' ' + data['direction']
+		if data['at_street']:
+			result = result + ' @ ' + data['at_street']
 
-	if 'Code' in nextbuses and nextbuses['Code'] == '3005':
-		if not route_number == '':
-			return str(route_number).lstrip('0') + ': no estimates found'
-		else:
-			return 'no estimates found'
-	elif 'Code' in nextbuses and nextbuses['Code'] == '3002':
-		return 'invalid stop number'
+	if len(result) > 0:
+		result = result + ': '
 
-	if not route_number == '':
-		routeInfo = (route for route in nextbuses if route['RouteNo'] == str(route_number).rjust(3, '0')).next()
-	else:
-		routeInfo = nextbuses[0]
-		route_number = routeInfo['RouteNo'].lstrip('0')
+	return result
 
-	result = str(route_number) + ' ' + destination + ' @ ' + at_street + ': '
+def format_route_info(nextbuses, route_number, stop_info):
+	# extract sanely structured and named data out of the json provided
+	data = scrapeStop.get_nextbus_info(nextbuses, route_number, stop_info)
+
+	# get the formatted "route direction @ stop" string based on whatever
+	# data is available
+	data['formatted'] = format_stop_route_info(data)
+
+	# return error messages early
+	if data['error']:
+		if data['error'] == 'invalid stop number':
+			if 'stop_number' in stop_info:
+				# special handling only here, otherwise 
+				# fall through to general report below
+				return str(stop_info['stop_number']) + ': ' \
+					+ data['error']
+		
+		return data['formatted'] + data['error']
 
 	departures = []
-	for departure in routeInfo['Schedules']:
-		if (departure['ExpectedCountdown'] < 90): # don't really care about buses that far out
-			if (departure['ScheduleStatus'] == '*'):
-				departures.append(str(departure['ExpectedCountdown']) + '*')
-			else:
-				departures.append(str(departure['ExpectedCountdown']))
+	for bus in data['buses']:
+		if (bus['countdown'] < 90):
+			# don't really care about buses more than 90 min away
+			departures.append(str(bus['countdown']) + bus['status'])
 
-	# TODO: for routes with more than one terminus, Schedules aren't interleaved, 
-	# so second terminus could be being lost at the end. sort by ExpectedCountdown
-	# before converting and trimming
+		# TODO: this ignores different destinations, which might be 
+		# important to the user. come up with a way to show them nicely
+		# (maybe "3a, 15b, 27a  - a: Main, b: Main-Marine Dr Stn" or 
+		# something similar?)
 
-	if (len(departures) > 0):
-		result = result + ', '.join(departures[:3]) + ' minutes'
+	if len(departures) > 0:
+		result = data['formatted'] + ', '.join(departures[:3]) + ' minutes'
 	else:
-		result = result + 'none'
+		result = data['formatted'] + 'none'
 
 	return result
 
@@ -133,10 +131,10 @@ def format_stops(stops):
 			route = False
 
 		stop_info = scrapeStop.get_stop_info(stop_number, route)
-
 		stop_nextbus = scrapeStop.get_stop_data(stop_number, route)
 
-		result = result + format_route_info(stop_nextbus, stop_info) + '\n'
+		result = result + format_route_info(stop_nextbus, route, 
+			stop_info) + '\n'
 		if HTML:
 			result = result + '<br/>\n'
 
@@ -150,5 +148,8 @@ if __name__ == '__main__':
 	else:
 		# command format is: "stop;stop;stop,route"
 		# e.g. ./printStops.py "50167;51518,25"
+		# test command: ./printStops.py "50167;50247;51518,3;11111"
+		# includes a real stop with bad route (which we should try to
+		# report correctly) and a fake stop number
 		stops = get_stops_from_command(sys.argv[1:])
 		print format_stops(stops)
