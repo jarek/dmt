@@ -57,7 +57,12 @@ def format_route_info(nextbuses, route_number, stop_info):
 	for bus in data['buses']:
 		if (bus['countdown'] < 90):
 			# don't really care about buses more than 90 min away
-			departures.append(str(bus['countdown']) + bus['status'])
+			if bus['status'] == '*':
+				# this is the only status message we care about
+				departures.append(str(bus['countdown'])
+					 + bus['status'])
+			else:
+				departures.append(str(bus['countdown']))
 
 		# TODO: this ignores different destinations, which might be 
 		# important to the user. come up with a way to show them nicely
