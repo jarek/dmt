@@ -14,8 +14,8 @@ STOP_SETS = {
 
 def format_timer_info(t):
     result = ''
-        for timepoint in t:
-                result = result + '<!--%s: %f-->' % (timepoint[0], timepoint[1]) + '\n'
+    for timepoint in t:
+            result = result + '<!--%s: %f-->' % (timepoint[0], timepoint[1]) + '\n'
     return result
 
 def format_stop_route_info(data):
