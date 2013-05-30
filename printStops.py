@@ -1,21 +1,32 @@
 #!/usr/bin/env python
+# coding=utf-8
 
+import cgi
 import sys
 import scrapeStop
 
-HTML = False
+HTML = True
 # TODO: set this to true or false depending if we're supposed to print as HTML or unstyled
 
 STOP_SETS = {
     'home-downtown': [50167, 51571, 61118],
     'downtown-home': [50035, 50233, 51513],
     'main-skytrain': [50233]
-    }
+}
+
+DEFAULT_STOPS = [
+    50167, # 3 northbound
+    50247, # 3 southbound
+    51518, #25 eastbound
+    51571, #25 westbound
+    61150, #33 eastbound
+    61118  #33 westbound
+]
 
 def format_timer_info(t):
     result = ''
     for timepoint in t:
-            result = result + '<!--%s: %f-->' % (timepoint[0], timepoint[1]) + '\n'
+        result = result + '<!--%s: %f-->' % (timepoint[0], timepoint[1]) + '\n'
     return result
 
 def format_stop_route_info(data):
@@ -109,22 +120,8 @@ def get_stops_from_command(command):
 
     return stops
 
-def format_default_stops():
-    stops = [
-        50167, # 3 northbound
-        50247, # 3 southbound
-        51518, #25 eastbound
-        51571, #25 westbound
-        61150, #33 eastbound
-        61118  #33 westbound
-        ]
-
-    return format_stops(stops)
-
 def format_stops(stops):
     result = ''
-    if HTML:
-        result = 'Content-type: text/html\n\n'
 
     for stop in stops:
         if isinstance(stop, list):
@@ -147,14 +144,39 @@ def format_stops(stops):
 
     return result
 
+def get_command():
+    command = '' # default
+
+    # note: if invoking the script in a CGI context, something
+    # (preferably "Content-type: text/html") MUST be printed 
+    # before invoking cgi.FieldStorage(), and by extension this function.
+    # not sure why, but so it is.
+    cgi_arguments = cgi.FieldStorage()
+
+    if 'command' in cgi_arguments:
+        command = [ str(cgi_arguments['command'].value) ]
+    elif len(sys.argv) > 1:
+        command = sys.argv[1:]
+
+    return command
+
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        print format_default_stops()
+    if HTML:
+        print 'Content-type: text/html\n\n'
+
+    command = get_command()
+
+    if command == '':
+        print format_stops(DEFAULT_STOPS)
     else:
         # command format is: "stop;stop;stop,route"
         # e.g. ./printStops.py "50167;51518,25"
         # test command: ./printStops.py "50167;50247;51518,3;11111"
+        # web test: /dmt/printStops.py?command=50167%3B50247%3B51518,3%3B11111
+        # (semicolon must be urlencoded to %3B)
         # includes a real stop with bad route (which we should try to
         # report correctly) and a fake stop number
-        stops = get_stops_from_command(sys.argv[1:])
+
+        stops = get_stops_from_command(command)
         print format_stops(stops)
+
