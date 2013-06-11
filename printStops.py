@@ -11,8 +11,15 @@ HTML = True
 STOP_SETS = {
     'home-downtown': [50167, 51571, 61118],
     'downtown-home': [50035, 50233, 51513],
-    'main-skytrain': [50233]
+    'main-skytrain': [50233],
+    'richmond-home': ['61337,3', 51513],
+    'cambie-home': ['50415,15', '50415,33']
 }
+
+# TODO: have a setting to include an arbitrary offset in minutes to do the calculation for 
+# N minutes from now automatically for me
+# TODO: perhaps also have a setting to pull in the scheduled departures - could be 
+# useful for loop departures like 61337,3 above
 
 DEFAULT_STOPS = [
     50167, # 3 northbound
@@ -167,7 +174,12 @@ if __name__ == '__main__':
     command = get_command()
 
     if command == '':
-        print format_stops(DEFAULT_STOPS)
+        print '<ul>'
+        for command in STOP_SETS:
+            print '<li><a href="?command=%s">%s</a>' % (command, command)
+        print '</ul>'
+
+        #print format_stops(DEFAULT_STOPS)
     else:
         # command format is: "stop;stop;stop,route"
         # e.g. ./printStops.py "50167;51518,25"

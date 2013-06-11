@@ -26,6 +26,8 @@ STOP_INFO = {
     50247: {'route_number': 3, 'direction': 'south', 'at_street': '28th'},
     51518: {'route_number': 25, 'direction': 'east', 'at_street': 'Main'},
     61150: {'route_number': 33, 'direction': 'east', 'at_street': 'Main'},
+    50415: {'at_street': '16th'},
+    61337: {'at_street': 'Marine Dr station'}
     }
 
 timer = []
