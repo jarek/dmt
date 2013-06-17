@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import cgi
+import datetime
 import sys
 import scrapeStop
 
@@ -128,7 +129,9 @@ def get_stops_from_command(command):
     return stops
 
 def format_stops(stops):
-    result = ''
+    result = 'as of %s:' % datetime.datetime.now().strftime('%H:%M')
+    if HTML:
+        result = result + '<br/>\n'
 
     for stop in stops:
         if isinstance(stop, list):
