@@ -14,7 +14,8 @@ STOP_SETS = {
     'downtown-home': [50035, 50233, 51513],
     'main-skytrain': [50233],
     'richmond-home': ['61337,3', 51513],
-    'cambie-home': ['50415,15', '50415,33']
+    'cambie-home': ['50415,15', '50415,33'],
+    'kitspoint-home': ['50400,84', 59997, '50324,9', 52065, '59580,3', 50238]
 }
 
 # TODO: have a setting to include an arbitrary offset in minutes to do the calculation for 

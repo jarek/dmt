@@ -27,7 +27,12 @@ STOP_INFO = {
     51518: {'route_number': 25, 'direction': 'east', 'at_street': 'Main'},
     61150: {'route_number': 33, 'direction': 'east', 'at_street': 'Main'},
     50415: {'at_street': '16th'},
-    61337: {'at_street': 'Marine Dr station'}
+    61337: {'at_street': 'Marine Dr station'},
+    59580: {'at_street': '2nd'},
+    50238: {'at_street': 'Broadway'},
+    50400: {'at_street': 'Burrard'},
+    59997: {'at_street': 'Maple'}, 50324: {'at_street': 'Maple'},
+    52065: {'at_street': '2nd at Fir'}
     }
 
 timer = []
@@ -110,6 +115,10 @@ def get_nextbus_info(nextbuses, route_number = '', stop_info = {}):
 
         destinations = {}
         for run in route_info['Schedules']:
+            if run['CancelledTrip'] == True:
+                # these are included in nextbus results but clearly not useful
+                continue
+
             bus_run = {}
             bus_run['destination'] = run['Destination'].title()
             destinations[bus_run['destination']] = True
