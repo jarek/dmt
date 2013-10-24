@@ -175,3 +175,8 @@ def get_stop_info(stop_number, route = False):
         return {'stop_number': stop_number, 'route_number': '', 
             'direction': '', 'at_street': ''}
 
+def make_nextbus_url(route):
+    # TODO: support specific stops, text
+    padded_route = pad_route_number(route)
+    return 'http://nb.translink.ca/Map/Route/%s' % padded_route
+

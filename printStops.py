@@ -42,7 +42,13 @@ def format_stop_route_info(data):
     result = ''
 
     if data['route_number']:
-        result = scrapeStop.unpad_route_number(data['route_number'])
+        route = scrapeStop.unpad_route_number(data['route_number'])
+
+        if not HTML:
+            result = route
+        else:
+            url = scrapeStop.make_nextbus_url(route)
+            result = "<a href='%s'>%s</a>" % (url, route)
 
         if data['direction']:
             result = result + ' ' + data['direction']
