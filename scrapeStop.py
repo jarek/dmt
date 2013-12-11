@@ -32,7 +32,10 @@ STOP_INFO = {
     50238: {'at_street': 'Broadway'},
     50400: {'at_street': 'Burrard'},
     59997: {'at_street': 'Maple'}, 50324: {'at_street': 'Maple'},
-    52065: {'at_street': '2nd at Fir'}
+    52065: {'at_street': '2nd at Fir'},
+    61031: {'at_street': 'Granville'},
+    54380: {'at_street': 'Capilano Mall'},
+    58110: {'at_street': 'Edgemont Village'}
     }
 
 timer = []

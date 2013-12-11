@@ -3,11 +3,13 @@
 
 import cgi
 import datetime
+import os
 import sys
 import scrapeStop
 
-HTML = True
-# TODO: set this to true or false depending if we're supposed to print as HTML or unstyled
+# check if we're running as CGI
+# this uses RFC3875 section 4.1.4
+HTML = 'GATEWAY_INTERFACE' in os.environ
 
 STOP_SETS = {
     'home-downtown': [50167, 51571, 61118],
@@ -15,7 +17,8 @@ STOP_SETS = {
     'main-skytrain': [50233],
     'richmond-home': ['61337,3', 51513],
     'cambie-home': ['50415,15', '50415,33'],
-    'kitspoint-home': ['50400,84', 59997, '50324,9', 52065, '59580,3', 50238]
+    'kitspoint-home': ['50400,84', 59997, '50324,9', 52065, '59580,3', 50238],
+    'downtown-grouse': ['61031,240', '61031,246', '58110,232', '54380,236']
 }
 
 # TODO: have a setting to include an arbitrary offset in minutes to do the calculation for 
@@ -136,7 +139,7 @@ def get_stops_from_command(command):
     return stops
 
 def format_stops(stops):
-    result = 'as of %s:' % datetime.datetime.now().strftime('%H:%M')
+    result = 'as of %s:\n' % datetime.datetime.now().strftime('%H:%M')
     if HTML:
         result = result + '<br/>\n'
 
@@ -157,7 +160,8 @@ def format_stops(stops):
         if HTML:
             result = result + '<br/>\n'
 
-    result = result + format_timer_info(scrapeStop.timer)
+    if HTML:
+        result = result + format_timer_info(scrapeStop.timer)
 
     return result
 
@@ -184,12 +188,18 @@ if __name__ == '__main__':
     command = get_command()
 
     if command == '':
-        print '<ul>'
-        for command in STOP_SETS:
-            print '<li><a href="?command=%s">%s</a>' % (command, command)
-        print '</ul>'
+        if HTML:
+            print '<ul>'
+            for command in STOP_SETS:
+                print '<li><a href="?command=%s">%s</a>' % (command, command)
+            print '</ul>'
 
-        #print format_stops(DEFAULT_STOPS)
+            #print format_stops(DEFAULT_STOPS)
+        else:
+            print 'available commands: (invoke with ./printStops.py [command])'
+            for command in STOP_SETS:
+                print '\t%s' % (command, )
+
     else:
         # command format is: "stop;stop;stop,route"
         # e.g. ./printStops.py "50167;51518,25"
