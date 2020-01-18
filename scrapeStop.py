@@ -7,6 +7,8 @@ import simplejson as json
 import time
 import translink_api_key # contains only the API_KEY constant
 
+import requests
+
 # constants for Translink scraping
 
 API_KEY = translink_api_key.API_KEY
@@ -14,7 +16,7 @@ API_KEY = translink_api_key.API_KEY
 API_STOP_URL = 'http://api.translink.ca/rttiapi/v1/stops/{STOP}/estimates?apikey={KEY}'
 API_STOP_AND_ROUTE_URL = 'http://api.translink.ca/rttiapi/v1/stops/{STOP}/estimates?apikey={KEY}&routeNo={ROUTE}'
 
-API_HEADERS = ['Accept: application/json']
+API_HEADERS = {'Accept': 'application/json'}
 
 STOP_INFO = {
     50167: {'route_number': 3, 'direction': 'north', 'at_street': '28th'},
@@ -41,24 +43,7 @@ STOP_INFO = {
 timer = []
 
 def get_URL(url):
-    http_get_time_start = time.time()
-
-    c = pycurl.Curl()
-
-    c.setopt(pycurl.HTTPHEADER, API_HEADERS)
-    
-    c.setopt(pycurl.URL, url)
-
-    b = StringIO.StringIO()
-    c.setopt(pycurl.WRITEFUNCTION, b.write)
-    c.perform()
-
-    #timer.append(['http get, ms', (time.time() - http_get_time_start)*1000.0])
-
-    html = b.getvalue()
-    b.close()
-    
-    return html
+    return requests.get(url, headers=API_HEADERS).text
 
 def unpad_route_number(route_number):
     return str(route_number).lstrip('0')
